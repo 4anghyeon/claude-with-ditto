@@ -1,0 +1,9 @@
+{
+  "name": "ditto",
+  "version": "0.1.0",
+  "description": "A Ditto-inspired pair-programming companion for Claude Code CLI and Desktop.",
+  "author": {
+    "name": "Local project"
+  },
+  "types": "./types/index.d.ts"
+}
