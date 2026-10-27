@@ -2,6 +2,8 @@
 
 메타몽이 프롬프트 위에서 작업 상태를 표정으로 알려 주는 Claude Code Mods입니다. 터미널(CLI)과 Claude Desktop의 Code 탭에서 모두 동작합니다.
 
+![터미널에서 본 메타몽 띠](docs/images/screenshot.png)
+
 ## 설치
 
 터미널에서 Claude Code를 실행한 뒤 프롬프트에 입력합니다.
@@ -47,6 +49,9 @@ claude plugin marketplace remove claude-with-ditto
   | 작업 완료 | ![작업 완료](docs/images/done.gif) | Claude가 답을 마쳤을 때 | 별이 반짝임 |
 
 - 메타몽 옆에는 지금 상태와 한마디가 뜹니다. 한마디는 상태별 10개 중에서 무작위로 나오고 5초마다 바뀝니다.
+- 컨텍스트 사용량을 막대와 퍼센트로 보여 줍니다.
+- 사용량 한도와 세션 비용을 보여 줍니다.
+- 지금 쓰는 모델을 보여 줍니다.
 - `/ditto <질문>`으로 메타몽에게 물어볼 수 있습니다. 질문은 지금 세션으로 바로 가고, Claude가 대화 맥락을 그대로 이어서 메타몽 말투로 답합니다.
 - `/ditto mood <idle|thinking|working|error|done>`로 표정을 직접 바꿔 보고, `/ditto demo`로 다섯 표정을 차례로 봅니다.
 
@@ -86,7 +91,7 @@ claude-with-ditto/
 │   ├── marketplace.json
 │   └── plugin.json
 ├── docs/
-│   └── images/            README의 상태별 GIF
+│   └── images/            README의 스크린샷과 상태별 GIF
 ├── hooks/
 │   ├── hooks.json
 │   ├── ditto.mjs

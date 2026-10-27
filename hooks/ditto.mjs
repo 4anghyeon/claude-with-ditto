@@ -25,13 +25,17 @@ const PERSONA = {
   ].join("\n"),
 };
 
+// Theme colours, so each one reads well in both the light and the dark theme.
 const MOODS = {
-  idle:     { color: "magenta", label: "대기 중" },
-  thinking: { color: "cyan",    label: "생각 중" },
-  working:  { color: "yellow",  label: "함께 작업 중" },
-  error:    { color: "red",     label: "오류 발견" },
-  done:     { color: "green",   label: "작업 완료" },
+  idle:     { color: "subtle",     label: "대기 중" },
+  thinking: { color: "suggestion", label: "생각 중" },
+  working:  { color: "warning",    label: "함께 작업 중" },
+  error:    { color: "error",      label: "오류 발견" },
+  done:     { color: "success",    label: "작업 완료" },
 };
+
+// Ditto's own body colour from the sprite, so the message reads as Ditto speaking.
+const MESSAGE_COLOR = "#C47BE6";
 
 // Ditto says one of these, picked at random whenever the mood changes.
 const MESSAGES = {
@@ -195,6 +199,13 @@ export function register(on) {
     return { sections: [...sections, PERSONA] };
   });
 
+  // Every skill run passes here: typed as /name, called by the Skill tool, or preloaded into a subagent.
+  on("skill.prompt", async ($, e, next) => {
+    const result = await next(e);
+    await announceSkill($, e.skill);
+    return result;
+  });
+
   on("ui.render", { component: "AbovePrompt" }, async ($, e, next) => {
     if (e.props?.hasSurvey) return next(e);
 
@@ -217,6 +228,37 @@ export function register(on) {
       : elements.Svg
         ? [elements.Svg({ alt: sprite.alt, ...sprite.svg })]
         : DITTO_ART.map((line) => Text({ color: "magenta", children: line }));
+
+    // The status line's own figures; the plain call costs nothing. The band redraws at least every
+    // MESSAGE_MS when the message changes, so the bar stays current without a timer of its own.
+    const usage = await $.session.usage().catch(() => undefined);
+    const context = usage ? contextParts(usage.context) : undefined;
+    const usageItems = usage ? usageParts(usage.rateLimits, usage.cost) : [];
+    // The main loop's model as /model shows it; a /model switch shows up on the next redraw.
+    const model = await $.session.model().catch(() => undefined);
+
+    // Session facts under a divider, apart from what Ditto says: a dim label, then the value.
+    const infoRow = (label, values) =>
+      Box({
+        flexDirection: "row",
+        columnGap: 1,
+        children: [Text({ dimColor: true, children: label.padEnd(INFO_LABEL_WIDTH) }), ...values],
+      });
+    const info = [
+      ...(context
+        ? [infoRow("Context", [
+            ...(context.bar ? [Text({ color: context.color, children: context.bar })] : []),
+            Text({ children: context.value }),
+          ])]
+        : []),
+      ...(usageItems.length > 0
+        ? [infoRow("Usage", usageItems.flatMap((item, i) => [
+            ...(i > 0 ? [Text({ color: "subtle", children: SEPARATOR })] : []),
+            Text({ children: item }),
+          ]))]
+        : []),
+      ...(model ? [infoRow("Model", [Text({ children: model })])] : []),
+    ];
     return Box({
       flexDirection: "row",
       paddingX: 1,
@@ -228,7 +270,10 @@ export function register(on) {
           paddingX: 1,
           children: [
             Text({ color: mood.color, bold: true, children: mood.label }),
-            Text({ children: String(state.lastMessage ?? MESSAGES.idle[0]) }),
+            state.announcement
+              ? Text({ color: ANNOUNCEMENT_COLOR, bold: true, children: state.announcement })
+              : Text({ color: MESSAGE_COLOR, children: String(state.lastMessage ?? MESSAGES.idle[0]) }),
+            ...(info.length > 0 ? [Text({ color: "subtle", children: DIVIDER }), ...info] : []),
           ],
         }),
       ],
@@ -263,6 +308,44 @@ async function startDemo($) {
   step(1);
 }
 
+// Box-drawing and block characters, which every terminal draws one cell wide.
+const DIVIDER = "─".repeat(30);
+const SEPARATOR = "│";
+const INFO_LABEL_WIDTH = "Context".length;
+const CONTEXT_BAR_CELLS = 10;
+const CONTEXT_WARN_PERCENT = 70;
+const CONTEXT_FULL_PERCENT = 85;
+
+// Short names for the rate-limit windows; a window the list does not know keeps its own name.
+const LIMIT_NAMES = { five_hour: "5h", seven_day: "7d", spend_limit: "spend" };
+
+// The rate-limit windows as percentages, then the session's cost, for one line. An account with no
+// plan limits has no windows (nor does any session before its first response), so it shows the cost alone.
+function usageParts(rateLimits, cost) {
+  const parts = (rateLimits ?? []).map(limit => `${LIMIT_NAMES[limit.kind] ?? limit.kind} ${limit.percentUsed}%`);
+  if (cost) parts.push(`$${cost.usd.toFixed(2)}`);
+  return parts;
+}
+
+function formatTokens(tokens) {
+  return tokens >= 1000 ? `${Math.round(tokens / 1000)}k` : String(tokens);
+}
+
+// The bar and the figures of the context line. A fresh or just-compacted session has no reading
+// until its next response, so it has no bar.
+function contextParts(context) {
+  if (context?.percent === undefined || context.tokens === undefined) {
+    return { value: "아직 없음" };
+  }
+  const percent = Math.min(100, Math.max(0, context.percent));
+  const filled = Math.round((percent / 100) * CONTEXT_BAR_CELLS);
+  return {
+    bar: "█".repeat(filled) + "░".repeat(CONTEXT_BAR_CELLS - filled),
+    color: percent >= CONTEXT_FULL_PERCENT ? "error" : percent >= CONTEXT_WARN_PERCENT ? "warning" : "success",
+    value: `${percent}% (${formatTokens(context.tokens)} / ${formatTokens(context.window)})`,
+  };
+}
+
 function terminalFrame(sprite, tick) {
   const { columns, rows, frames } = sprite.terminal;
   return { columns, rows, cells: frames[FRAME_SEQUENCE[tick % FRAME_SEQUENCE.length]] };
@@ -277,11 +360,10 @@ async function stepAnimation($) {
   if (animation.requestId === undefined) return;
   animation.tick += 1;
   const sprite = SPRITES[animation.mood] ?? SPRITES.idle;
-  const result = await $.ui.blit({
-    requestId: animation.requestId,
-    key: SPRITE_KEY,
-    ...terminalFrame(sprite, animation.tick),
-  });
+  // A blit that fails outright stops the animation as a refused one does, until the band is drawn again.
+  const result = await $.ui
+    .blit({ requestId: animation.requestId, key: SPRITE_KEY, ...terminalFrame(sprite, animation.tick) })
+    .catch(() => ({ deny: "blit failed" }));
   if (result.deny !== undefined) animation.requestId = undefined;
 }
 
@@ -289,6 +371,30 @@ async function stepAnimation($) {
 function randomMessage(mood, current) {
   const choices = MESSAGES[mood].filter((message) => message !== current);
   return choices[Math.floor(Math.random() * choices.length)];
+}
+
+// A skill run is announced in the message's place for a while, the way a Pokémon battle names a move,
+// in the theme's accent colour so it stands apart from Ditto's usual lines.
+const ANNOUNCEMENT_MS = 10000;
+const ANNOUNCEMENT_COLOR = "claude";
+let announcementTimer;
+
+// 을 after a final consonant, 를 after a vowel. Hangul tells by its last syllable and a digit by how it
+// is read; a Latin name cannot be told reliably, so it gets both.
+function objectParticle(name) {
+  const last = name.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 === 0 ? "를" : "을";
+  if (/[0-9]/.test(last)) return "013678".includes(last) ? "을" : "를";
+  return "을(를)";
+}
+
+async function announceSkill($, skill) {
+  // A plugin skill is named "plugin:skill"; the skill's own name is enough here.
+  const name = skill.split(":").pop();
+  announcementTimer?.cancel();
+  await saveState($, { announcement: `메타몽은 ${name}${objectParticle(name)} 사용했다!` });
+  announcementTimer = $.clock.after(ANNOUNCEMENT_MS, () => void saveState($, { announcement: undefined }));
 }
 
 // How long one message stays before Ditto says another one for the same mood.
