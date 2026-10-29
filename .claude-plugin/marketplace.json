@@ -1,5 +1,6 @@
 {
   "name": "claude-with-ditto",
   "owner": { "name": "4anghyeon" },
+  "description": "A pixel Ditto pair-programming companion above the Claude Code prompt.",
   "plugins": [{ "name": "ditto", "source": "./" }]
 }

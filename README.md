@@ -129,4 +129,4 @@ It leaves the prompts you type alone and never blocks or approves tool runs. It 
 
 The code is under the [MIT License](LICENSE).
 
-Pokémon, Ditto's name and likeness, the sprites based on it and the quoted Pokédex text belong to Nintendo, Creatures and GAME FREAK, and are not covered by this license. This is an unofficial fan project, not affiliated with them.
+Pokémon, Ditto's name and likeness, the sprites based on it and the quoted Pokédex text belong to Nintendo, Creatures and GAME FREAK, and are not covered by this license (see [NOTICE](NOTICE)). This is an unofficial fan project, not affiliated with them.

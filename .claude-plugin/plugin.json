@@ -3,8 +3,20 @@
   "version": "1.0.2",
   "description": "A Ditto-inspired pair-programming companion for Claude Code CLI and Desktop.",
   "author": {
-    "name": "4anghyeon"
+    "name": "4anghyeon",
+    "url": "https://github.com/4anghyeon"
   },
+  "homepage": "https://github.com/4anghyeon/claude-with-ditto",
+  "repository": "https://github.com/4anghyeon/claude-with-ditto",
+  "license": "MIT",
+  "keywords": [
+    "pixel-art",
+    "companion",
+    "pair-programming",
+    "animation",
+    "pokemon",
+    "ditto"
+  ],
   "userConfig": {
     "language": {
       "type": "string",
