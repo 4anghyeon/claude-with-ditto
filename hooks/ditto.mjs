@@ -1,6 +1,5 @@
-// Claude with Ditto — terminal/Desktop companion.
-// Uses only documented mod hooks and UI primitives. The command /ditto <message>
-// sends a pair-programming question to the current session, answered in Ditto's voice.
+// Claude with Ditto: a pixel Ditto above the prompt that shows how the work is going. The command
+// /ditto <message> sends a pair-programming question to the current session, answered in Ditto's voice.
 
 import { LOCALES } from "./locales.mjs";
 import { drawSprite, FRAME_MS, terminalFrame, TRANSITION_MS } from "./draw.mjs";
@@ -167,8 +166,8 @@ export function register(on, options) {
         ? [elements.Svg({ ...sprite.svg, alt: text.alts[state.mood] ?? text.alts.idle })]
         : DITTO_ART.map((line) => Text({ color: "magenta", children: line }));
 
-    // The status line's own figures; the plain call costs nothing. The band redraws at least every
-    // MESSAGE_MS when the message changes, so the bar stays current without a timer of its own.
+    // The status line's own figures. The band redraws at least every MESSAGE_MS when the message
+    // changes, so the bar stays current without a timer of its own.
     const usage = await $.session.usage().catch(() => undefined);
     const context = usage ? contextParts(usage.context) : undefined;
     const usageItems = usage ? usageParts(usage.rateLimits, usage.cost) : [];

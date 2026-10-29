@@ -47,7 +47,8 @@ test('desktop svg: idle only blinks, other moods hop and twinkle', KOREAN, async
   for (const surface of ['desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const svg = (await ui.find({ type: 'Svg' }))?.props as { source: string; isInteractive: boolean }
-    expect(svg.isInteractive).toBe(true)
+    // An image, so a new SVG never blanks a frame while it loads.
+    expect(svg.isInteractive).toBe(false)
     expect(svg.source).not.toContain('<animateTransform')
     expect(svg.source).toContain('<animate attributeName="opacity" values="0;1;0"')
     await ui.unmount()

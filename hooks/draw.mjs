@@ -349,7 +349,7 @@ function rects(cells) {
   return out;
 }
 
-// Seconds the way the SVGs have always written them: 3.0, 0.75.
+// Seconds for an SVG duration, with at least one decimal: 3.0, 0.75.
 function seconds(ms) {
   const value = ms / 1000;
   return Number.isInteger(value) ? value.toFixed(1) : String(value);
@@ -362,14 +362,17 @@ function svgOpen(width, height, label) {
   );
 }
 
+// Drawn as an image, not an interactive frame: Desktop loads a frame afresh, blanking for a moment, each time
+// its SVG changes, while an image keeps showing until the next one is ready. The image still plays the
+// SVG's animations; Ditto needs no hover or tooltips.
 function svgElement(source, width, height) {
-  return { source, width: width * TIMING.scale, height: height * TIMING.scale, isInteractive: true };
+  return { source, width: width * TIMING.scale, height: height * TIMING.scale, isInteractive: false };
 }
 
 // A mood's SVG animates by itself: the body breathes between its resting and risen frames and hops, the
 // lids close on the blink and the glyphs twinkle. Every animation runs on the same clock, so each breath
-// frame carries its own lids and blinks with the rest. The resting frame is visible before the animations
-// start, so Ditto does not vanish for a moment each time Desktop swaps in a new SVG.
+// frame carries its own lids and blinks with the rest. The resting frame shows before the animations start,
+// so a new SVG never draws an empty Ditto.
 function moodSvg(mood, parts) {
   const { width, height } = mood.desktop;
   const { bounce, cycle, blinkFrame, extrasOn, extrasPeriod, frameMs, lift } = TIMING;
