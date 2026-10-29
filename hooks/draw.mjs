@@ -102,10 +102,12 @@ function poseMood(layer, facing, gaze, held) {
   return { body, props, extras, eyes: new Set(eyes.map(([r, c]) => key(r, c))), stretchRow: layer.stretchRow };
 }
 
-// One breath every ten seconds: the upper body rises a pixel, holds for half a second and settles.
+// One breath every ten seconds: the upper body rises a pixel, holds for half a second and settles. It rises
+// between hops, on ground beats of the bounce, since a hop and a breath at once lift the tip of the head out
+// of the canvas. Ten seconds is a whole number of bounces, so the two never drift into each other.
 const BREATH_TICKS = 10000 / FRAME_MS;
-const RISE_FROM = 2;
-const RISE_UNTIL = 6;
+const RISE_FROM = 5;
+const RISE_UNTIL = 9;
 const BREATH = Array.from({ length: BREATH_TICKS }, (_, i) => (i >= RISE_FROM && i < RISE_UNTIL ? 1 : 0));
 
 // The body and eyes partway through a breath. Rising repeats the last row above the shadow along the

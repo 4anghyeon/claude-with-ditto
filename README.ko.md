@@ -69,6 +69,24 @@ claude plugin marketplace remove claude-with-ditto
 - `/ditto mood <idle|thinking|working|error|done>`로 표정을 직접 바꿔 보고, `/ditto demo`로 다섯 표정과 도구별 소품 네 가지를 차례로 봅니다.
 - 한국어와 영어로 말합니다. 영어에서는 포켓몬 게임 대사처럼 "Ditto used Transform!" 같은 말을 합니다.
 
+## 움직임
+
+표정이 바뀔 때는 녹아내렸다가 다시 뭉칩니다.
+
+![대기 중에서 생각 중으로 바뀌는 모습](docs/images/transition.gif)
+
+대기 중에는 가끔 짧은 동작을 하고, 오래 두면 잠듭니다.
+
+| 두리번 | 흔들기 | 늘리기 | 하품 | 잠들기 |
+|---|---|---|---|---|
+| ![두리번](docs/images/action-look.gif) | ![흔들기](docs/images/action-wiggle.gif) | ![늘리기](docs/images/action-squish.gif) | ![하품](docs/images/action-yawn.gif) | ![잠들기](docs/images/action-sleep.gif) |
+
+도구를 쓰는 동안에는 소품을 듭니다.
+
+| Read | Grep, Glob | Bash | 웹 검색 |
+|---|---|---|---|
+| ![책](docs/images/prop-read.gif) | ![돋보기](docs/images/prop-search.gif) | ![터미널 창](docs/images/prop-bash.gif) | ![지구본](docs/images/prop-web.gif) |
+
 ## 언어
 
 `/ditto lang <auto|ko|en>`으로 바꿉니다. 바꾼 값은 `/config`의 Ditto `language` 항목에 저장되어 다음 세션에도 유지됩니다.

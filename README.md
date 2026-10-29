@@ -68,6 +68,24 @@ claude plugin marketplace remove claude-with-ditto
 - `/ditto mood <idle|thinking|working|error|done>` sets a face by hand, and `/ditto demo` shows all five in turn, then the four tool props.
 - Ditto speaks English and Korean. In English it talks like the Pokémon games: "Ditto used Transform!"
 
+## Motion
+
+When its mood changes, Ditto melts down and wells back up.
+
+![Ditto changing from idle to thinking](docs/images/transition.gif)
+
+While idle it does a short action now and then, and falls asleep if left alone.
+
+| Look around | Wiggle | Stretch | Yawn | Sleep |
+|---|---|---|---|---|
+| ![Look around](docs/images/action-look.gif) | ![Wiggle](docs/images/action-wiggle.gif) | ![Stretch](docs/images/action-squish.gif) | ![Yawn](docs/images/action-yawn.gif) | ![Sleep](docs/images/action-sleep.gif) |
+
+While it uses a tool, it holds a prop.
+
+| Read | Grep, Glob | Bash | Web search |
+|---|---|---|---|
+| ![Book](docs/images/prop-read.gif) | ![Magnifier](docs/images/prop-search.gif) | ![Terminal](docs/images/prop-bash.gif) | ![Globe](docs/images/prop-web.gif) |
+
 ## Language
 
 Change it with `/ditto lang <auto|ko|en>`. The value is saved in Ditto's `language` row in `/config` and kept for later sessions.
