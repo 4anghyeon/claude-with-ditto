@@ -48,8 +48,8 @@ test('while idle Ditto does a short action now and then, then falls asleep after
   expect(seen).toContain('action')
   expect(seen.every(name => name === 'idle' || name === 'action')).toBe(true)
 
-  // An action that is still playing at the minute finishes first.
-  await clock.advance(5000)
+  // An action that is still playing at the minute finishes first, then Ditto turns to stone for a second.
+  await clock.advance(7000)
   expect(await drawn($)).toBe('sleep')
   const asleep = new Set<string>()
   for (let ms = 0; ms < 60000; ms += 1000) {
@@ -68,7 +68,7 @@ test('a new turn wakes Ditto, and the wait starts over when it is idle again', K
   const run = (args: string) => $.command.run({ command: 'ditto', args, origin: { kind: 'person' }, presentation: { isFullscreen: false, columns: 80 } } as never)
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 
-  await clock.advance(64000)
+  await clock.advance(66000)
   expect(await drawn($)).toBe('sleep')
   await $.turn.start({ text: 'go', turnId: 't1' })
   expect(await drawn($)).toBe('transition')
@@ -98,7 +98,7 @@ test('the terminal plays an action\'s own frames', KOREAN, async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await clock.advance(125 * 24)
   const blinking = new Set(blits)
-  await clock.advance(64000)
+  await clock.advance(66000)
   blits.length = 0
   await clock.advance(125 * 16)
   // Sleep has four frames of its own as the Z rises, and none of them is the blinking idle sprite.
@@ -106,4 +106,27 @@ test('the terminal plays an action\'s own frames', KOREAN, async ($, on) => {
   expect(new Set(blits).size).toBe(4)
   expect(blits.some(cells => blinking.has(cells))).toBe(false)
   await ui.unmount()
+})
+
+test('Ditto turns to stone before it sleeps, and sleeps as a grey stone', KOREAN, async ($, on) => {
+  const clock = mock.clock(on)
+  on('command.register', () => ({ value: { command: 'ditto' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  const STONE = '#9696a0'
+  const PURPLE = '#c47be6'
+  let petrifying = ''
+  for (let ms = 0; ms < 70000 && !petrifying; ms += 125) {
+    await clock.advance(125)
+    const source = await sourceOf($)
+    if (source.includes(STONE) && !source.includes('#c8dcff')) petrifying = source
+  }
+  // Turning to stone shows both the purple body and the grey rock, and no Z yet.
+  expect(petrifying).toContain(PURPLE)
+  await clock.advance(2000)
+  const asleep = await sourceOf($)
+  expect(kindOf(asleep)).toBe('sleep')
+  expect(asleep).toContain(STONE)
+  expect(asleep).not.toContain(PURPLE)
 })

@@ -385,13 +385,16 @@ async function saveState($, patch, { refresh = false } = {}) {
 
 let transitionTimer;
 
-// While idle Ditto blinks, and every so often does one short action. After a minute it falls asleep
+// While idle Ditto blinks, and every so often does one short action. After a minute it turns to stone
 // and sleeps until the mood changes.
 const IDLE_ACTION_MIN_MS = 3000;
 const IDLE_ACTION_MAX_MS = 5000;
 const SLEEP_AFTER_MS = 60000;
 const SLEEP_ACTION = "sleep";
-const SHORT_ACTIONS = Object.keys(IDLE_ACTIONS).filter((name) => !IDLE_ACTIONS[name].loops);
+// Ditto turns into a stone as it falls asleep, the way it hides from attack, then sleeps as one.
+const FALL_ASLEEP_ACTION = "petrify";
+const ASLEEP = new Set([FALL_ASLEEP_ACTION, SLEEP_ACTION]);
+const SHORT_ACTIONS = Object.keys(IDLE_ACTIONS).filter((name) => !IDLE_ACTIONS[name].loops && !ASLEEP.has(name));
 const idleActions = { running: false, elapsed: 0, timer: undefined };
 
 function startIdleActions($) {
@@ -412,7 +415,11 @@ function scheduleIdleAction($) {
   if (idleActions.elapsed + wait >= SLEEP_AFTER_MS) {
     // The last action may end past the minute, and then Ditto falls asleep right away.
     const left = Math.max(0, SLEEP_AFTER_MS - idleActions.elapsed);
-    idleActions.timer = $.clock.after(left, () => void saveState($, { action: SLEEP_ACTION }));
+    idleActions.timer = $.clock.after(left, async () => {
+      await saveState($, { action: FALL_ASLEEP_ACTION });
+      const length = IDLE_ACTIONS[FALL_ASLEEP_ACTION].sequence.length * FRAME_MS;
+      idleActions.timer = $.clock.after(length, () => void saveState($, { action: SLEEP_ACTION }));
+    });
     return;
   }
   idleActions.timer = $.clock.after(wait, async () => {
@@ -448,7 +455,7 @@ function scheduleGaze($) {
   gazeTimer = $.clock.after(randomBetween(GAZE_MIN_MS, GAZE_MAX_MS), async () => {
     const { value } = await $.state.get(STATE);
     const looking = value?.gaze && value.gaze !== "center";
-    if (value?.action !== SLEEP_ACTION) {
+    if (!ASLEEP.has(value?.action)) {
       await saveState($, { gaze: looking ? "center" : GLANCES[Math.floor(Math.random() * GLANCES.length)] });
     }
     scheduleGaze($);
@@ -458,7 +465,7 @@ function scheduleGaze($) {
 function scheduleTurn($) {
   turnTimer = $.clock.after(randomBetween(TURN_MIN_MS, TURN_MAX_MS), async () => {
     const { value } = await $.state.get(STATE);
-    if (value?.action !== SLEEP_ACTION) {
+    if (!ASLEEP.has(value?.action)) {
       await saveState($, { facing: value?.facing === "right" ? "left" : "right" });
     }
     scheduleTurn($);
