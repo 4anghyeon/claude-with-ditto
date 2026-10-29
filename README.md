@@ -22,6 +22,17 @@ claude plugin install ditto --marketplace 4anghyeon/claude-with-ditto
 
 `/plugin` does not work in the Desktop app. Press the + button next to the prompt box, add `4anghyeon/claude-with-ditto` under Plugins with Add marketplace, then press Add plugin.
 
+## Update
+
+Fetch the latest marketplace list, then update the mod:
+
+```sh
+claude plugin marketplace update claude-with-ditto
+claude plugin update ditto@claude-with-ditto
+```
+
+A session that is already running picks up the new version after `/reload-plugins` or a restart.
+
 ## Uninstall
 
 Remove the mod from the shell:

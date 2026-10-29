@@ -22,6 +22,17 @@ claude plugin install ditto --marketplace 4anghyeon/claude-with-ditto
 
 Desktop 앱에서는 `/plugin`이 동작하지 않습니다. 프롬프트 입력창 옆의 + 버튼을 누르고 Plugins에서 Add marketplace로 `4anghyeon/claude-with-ditto`를 추가한 뒤 Add plugin을 누르세요.
 
+## 업데이트
+
+마켓플레이스 목록을 새로 받은 뒤 모드를 업데이트합니다.
+
+```sh
+claude plugin marketplace update claude-with-ditto
+claude plugin update ditto@claude-with-ditto
+```
+
+이미 열려 있는 세션에는 `/reload-plugins`를 입력하거나 다시 시작하면 새 버전이 적용됩니다.
+
 ## 제거
 
 셸에서 모드를 지웁니다.
