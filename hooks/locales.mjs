@@ -98,7 +98,7 @@ const ko = {
   commandDescription: "메타몽에게 이 세션의 페어 프로그래밍 질문하기",
   moodNames: (names) => `기분 이름: ${names}`,
   moodChanged: (label) => `메타몽 표정을 ${label}(으)로 바꿨어요.`,
-  demoStarted: (seconds) => `메타몽이 ${seconds}초마다 다섯 표정을 차례로 보여 줘요.`,
+  demoStarted: (seconds) => `메타몽이 ${seconds}초마다 다섯 표정과 도구별 소품 네 가지를 차례로 보여 줘요.`,
   help: [
     "Claude with Ditto",
     "",
@@ -207,7 +207,7 @@ const en = {
   commandDescription: "Ask Ditto a pair-programming question in this session",
   moodNames: (names) => `Moods: ${names}`,
   moodChanged: (label) => `Ditto's mood is now ${label}.`,
-  demoStarted: (seconds) => `Ditto shows its five moods, one every ${seconds} seconds.`,
+  demoStarted: (seconds) => `Ditto shows its five moods and then its four tool props, one every ${seconds} seconds.`,
   help: [
     "Claude with Ditto",
     "",

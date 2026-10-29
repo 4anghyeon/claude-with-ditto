@@ -65,7 +65,7 @@ claude plugin marketplace remove claude-with-ditto
 - Rate limits and the session's cost are shown too.
 - So is the model in use.
 - `/ditto <question>` asks Ditto. The question goes straight to this session, and Claude answers in Ditto's voice with the conversation's context.
-- `/ditto mood <idle|thinking|working|error|done>` sets a face by hand, and `/ditto demo` shows all five in turn.
+- `/ditto mood <idle|thinking|working|error|done>` sets a face by hand, and `/ditto demo` shows all five in turn, then the four tool props.
 - Ditto speaks English and Korean. In English it talks like the Pokémon games: "Ditto used Transform!"
 
 ## Language

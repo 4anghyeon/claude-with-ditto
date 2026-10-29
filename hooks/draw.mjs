@@ -2,7 +2,7 @@
 // moved where it looks, its breath, then each frame's hop, blink and glyphs. The terminal gets half-block
 // cells for one frame at a time; Desktop gets an SVG that animates by itself.
 
-import { COLOURS, IDLE_ACTIONS, MOODS, PALETTE, TIMING, ZED_GLYPH } from "./sprites.mjs";
+import { COLOURS, IDLE_ACTIONS, MOODS, PALETTE, TIMING, TOOLS, ZED_GLYPH } from "./sprites.mjs";
 
 export const FRAME_MS = TIMING.frameMs;
 
@@ -15,7 +15,7 @@ const drawn = new Map();
 
 // Ditto as the state shows it: the change from one mood to the next while it plays, else an idle action
 // when one plays, else the mood. Each one is drawn once.
-export function drawSprite({ mood, action, transition, facing = "left", gaze = "center" }) {
+export function drawSprite({ mood, action, transition, prop, facing = "left", gaze = "center" }) {
   const to = MOODS[mood] ? mood : "idle";
   if (MOODS[transition]) {
     return remember(`transition ${transition} ${to} ${facing} ${gaze}`, () =>
@@ -24,7 +24,8 @@ export function drawSprite({ mood, action, transition, facing = "left", gaze = "
   if (mood === "idle" && IDLE_ACTIONS[action]) {
     return remember(`action ${action} ${facing}`, () => drawAction(IDLE_ACTIONS[action], facing));
   }
-  return remember(`mood ${to} ${facing} ${gaze}`, () => drawMood(MOODS[to], facing, gaze));
+  const held = TOOLS[prop] ? prop : undefined;
+  return remember(`mood ${to} ${facing} ${gaze} ${held}`, () => drawMood(MOODS[to], facing, gaze, TOOLS[held]));
 }
 
 function remember(id, draw) {
@@ -66,12 +67,21 @@ function stamp(cells, row, column, pattern, colour) {
 
 // The mood's parts as Ditto faces and looks: the sprites face left, and facing right mirrors everything
 // but the glyphs' own shapes. The eyes move one pixel the way Ditto looks where the body has room for it.
-function poseMood(layer, facing, gaze) {
+function poseMood(layer, facing, gaze, held) {
   const { width } = layer;
   let body = readGrid(layer.body);
   let props = readGrid(layer.props);
   let eyes = layer.eyes.map(([r, c]) => [r, c]);
   let glyphs = layer.glyphs;
+  if (held) {
+    // A tool's prop takes the place of what the mood shows there: the laptop in front, the glyphs above.
+    if (held.place === "front") props = new Map();
+    else glyphs = [];
+    for (const [cell, colour] of readGrid(held.pattern)) {
+      const [r, c] = cell.split(",").map(Number);
+      props.set(key(r + held.at.row, c + held.at.column), colour);
+    }
+  }
   if (facing === "right") {
     body = mirror(body, width);
     props = mirror(props, width);
@@ -148,8 +158,10 @@ function composeMood(parts, width, height, { lifted, blinking, extrasOn }) {
   return grid;
 }
 
-function drawMood(mood, facing, gaze) {
-  const terminal = poseMood(mood.terminal, facing, gaze);
+// `tool` is the prop of the tool Ditto is using, if any.
+function drawMood(mood, facing, gaze, tool) {
+  const holding = (surface) => tool && { place: tool.place, pattern: tool.pattern, at: tool[surface] };
+  const terminal = poseMood(mood.terminal, facing, gaze, holding("terminal"));
   const breaths = [breathe(terminal, 0), breathe(terminal, 1)];
   const { width, height } = mood.terminal;
   const frames = new Map();
@@ -163,7 +175,7 @@ function drawMood(mood, facing, gaze) {
       if (!frames.has(id)) frames.set(id, encodeCells(composeMood(breaths[rise], width, height, frame)));
       return frames.get(id);
     },
-    svg: moodSvg(mood, poseMood(mood.desktop, facing, gaze)),
+    svg: moodSvg(mood, poseMood(mood.desktop, facing, gaze, holding("desktop"))),
   };
 }
 

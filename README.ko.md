@@ -66,7 +66,7 @@ claude plugin marketplace remove claude-with-ditto
 - 사용량 한도와 세션 비용을 보여 줍니다.
 - 지금 쓰는 모델을 보여 줍니다.
 - `/ditto <질문>`으로 메타몽에게 물어볼 수 있습니다. 질문은 지금 세션으로 바로 가고, Claude가 대화 맥락을 그대로 이어서 메타몽 말투로 답합니다.
-- `/ditto mood <idle|thinking|working|error|done>`로 표정을 직접 바꿔 보고, `/ditto demo`로 다섯 표정을 차례로 봅니다.
+- `/ditto mood <idle|thinking|working|error|done>`로 표정을 직접 바꿔 보고, `/ditto demo`로 다섯 표정과 도구별 소품 네 가지를 차례로 봅니다.
 - 한국어와 영어로 말합니다. 영어에서는 포켓몬 게임 대사처럼 "Ditto used Transform!" 같은 말을 합니다.
 
 ## 언어

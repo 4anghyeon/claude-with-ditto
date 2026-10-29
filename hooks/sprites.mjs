@@ -2,10 +2,81 @@
 // Ditto's pixels, which hooks/draw.mjs puts together into each frame. A grid row has one character a
 // pixel: '.' is empty, any other is an index into PALETTE.
 
-export const PALETTE = ["#61148c", "#010101", "#ffcbff", "#c47be6", "#9c5ab4", "#7884ff", "#545c78", "#96a0ba", "#c4e2ff", "#54a0f0", "#dc466e", "#54a8fa", "#ffd45c", "#4e2b70", "#c8dcff"];
-export const COLOURS = {"body": 3, "black": 1, "outlines": [0, 1, 13], "zed": 14};
+export const PALETTE = ["#61148c", "#010101", "#ffcbff", "#c47be6", "#9c5ab4", "#7884ff", "#545c78", "#96a0ba", "#c4e2ff", "#54a0f0", "#dc466e", "#54a8fa", "#ffd45c", "#965c38", "#f4eede", "#60de80", "#1c1e28", "#60c870", "#4e2b70", "#c8dcff"];
+export const COLOURS = {"body": 3, "black": 1, "outlines": [0, 1, 18], "zed": 19};
 export const ZED_GLYPH = ["###", "..#", ".#.", "#..", "###"];
 export const TIMING = {"frameMs": 125, "cycle": 24, "bounce": [0, 0, 1, 1, 1, 0, 0, 0], "blinkFrame": 20, "extrasOn": 4, "extrasPeriod": 6, "lift": 1, "scale": 5};
+
+// What Ditto holds while it uses a tool, and where.
+export const TOOLS = {
+  "read": {
+    "place": "front",
+    "pattern": [
+      "deedeed",
+      "deedeed",
+      "ddddddd"
+    ],
+    "terminal": {
+      "row": 9,
+      "column": 3
+    },
+    "desktop": {
+      "row": 10,
+      "column": 3
+    }
+  },
+  "bash": {
+    "place": "front",
+    "pattern": [
+      "666666",
+      "6fggg6",
+      "666666"
+    ],
+    "terminal": {
+      "row": 9,
+      "column": 3
+    },
+    "desktop": {
+      "row": 10,
+      "column": 3
+    }
+  },
+  "search": {
+    "place": "above",
+    "pattern": [
+      ".66..",
+      "6886.",
+      "6886.",
+      ".666.",
+      "....6"
+    ],
+    "terminal": {
+      "row": 0,
+      "column": 12
+    },
+    "desktop": {
+      "row": 0,
+      "column": 11
+    }
+  },
+  "web": {
+    "place": "above",
+    "pattern": [
+      ".99.",
+      "9h99",
+      "99h9",
+      ".99."
+    ],
+    "terminal": {
+      "row": 0,
+      "column": 13
+    },
+    "desktop": {
+      "row": 0,
+      "column": 12
+    }
+  }
+};
 
 export const MOODS = {
   "idle": {

@@ -60,26 +60,26 @@ export function register(on, options) {
   on("turn.start", async ($, e, next) => {
     const result = await next(e);
     if (!e.agentId) {
-      await saveState($, { mood: "thinking" });
+      await saveState($, { mood: "thinking", lastTool: undefined });
     }
     return result;
   });
 
   on("tool.call", async ($, e, next) => {
     const tool = String(e.tool ?? "");
-    const result = await next(e);
 
-    // Observe tools only; never block or rewrite them.
+    // Observe tools only; never block or rewrite them. The mood and the prop change as the tool starts,
+    // so Ditto holds the prop while the tool runs.
     if (tool === "Bash") {
       const command = String(e.command ?? "");
       const mood = /test|lint|typecheck|build|check/i.test(command) ? "thinking" : "working";
       await saveState($, { mood, lastTool: tool });
-    } else if (["Read", "Glob", "Grep"].includes(tool)) {
+    } else if (["Read", "Glob", "Grep", "WebSearch", "WebFetch"].includes(tool)) {
       await saveState($, { mood: "thinking", lastTool: tool });
     } else if (["Edit", "Write", "NotebookEdit"].includes(tool)) {
       await saveState($, { mood: "working", lastTool: tool });
     }
-    return result;
+    return next(e);
   });
 
   on("turn.complete", async ($, e, next) => {
@@ -152,7 +152,7 @@ export function register(on, options) {
     // Terminal draws the sprite as half-block cells that a timer repaints, Desktop as an animated SVG;
     // ASCII art where neither exists. Other surfaces list Raster too but draw it as an empty fragment,
     // so pick by surface.
-    const sprite = drawSprite(state);
+    const sprite = drawSprite({ ...state, prop: propFor(state) });
     if (e.surface === "terminal") {
       // An idle action or a change of mood plays from its first frame.
       if (animation.action !== state.action || animation.transition !== state.transition) animation.tick = 0;
@@ -219,7 +219,14 @@ export function register(on, options) {
   });
 }
 
-// Test commands: pin one mood, or walk through every mood once.
+// The prop Ditto holds for the tool it last used this turn, while it is thinking or working.
+const TOOL_PROPS = { Read: "read", Grep: "search", Glob: "search", Bash: "bash", WebSearch: "web", WebFetch: "web" };
+
+function propFor({ mood, lastTool }) {
+  return mood === "thinking" || mood === "working" ? TOOL_PROPS[lastTool] : undefined;
+}
+
+// Test commands: pin one mood, or walk through every mood once and then the tools' props.
 const DEMO_MS = 3000;
 let demoTimer;
 
@@ -229,16 +236,24 @@ async function showMood($, name) {
   await saveState($, { mood: name }, { refresh: true });
 }
 
+// Each prop is shown in a mood that holds it, as if Ditto were using that tool.
+const DEMO_PROPS = [
+  { mood: "thinking", lastTool: "Read" },
+  { mood: "thinking", lastTool: "Grep" },
+  { mood: "working", lastTool: "Bash" },
+  { mood: "thinking", lastTool: "WebSearch" },
+];
+
 async function startDemo($) {
-  const names = Object.keys(MOODS);
-  await showMood($, names[0]);
+  const steps = [...Object.keys(MOODS).map((mood) => ({ mood, lastTool: undefined })), ...DEMO_PROPS];
+  await showMood($, steps[0].mood);
   const step = (i) => {
     demoTimer = $.clock.after(DEMO_MS, () => {
-      if (i < names.length) {
-        void saveState($, { mood: names[i] });
+      if (i < steps.length) {
+        void saveState($, steps[i]);
         step(i + 1);
       } else {
-        void saveState($, { mood: "idle" });
+        void saveState($, { mood: "idle", lastTool: undefined });
         demoTimer = undefined;
       }
     });

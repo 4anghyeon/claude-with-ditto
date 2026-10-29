@@ -16,6 +16,13 @@ const ALT: Record<string, string> = {
   error: '당황한 메타몽', done: '반짝이며 기뻐하는 메타몽',
 }
 
+async function svgSource($: Engine) {
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const value = ((await ui.find({ type: 'Svg' }))?.props as { source: string }).source
+  await ui.unmount()
+  return value
+}
+
 async function alt($: Engine) {
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   const value = ((await ui.find({ type: 'Svg' }))?.props as { alt: string }).alt
@@ -39,9 +46,21 @@ test('/ditto mood and /ditto demo', KOREAN, async ($, on) => {
 
   await run('demo')
   const seen = [await alt($)]
-  for (let i = 0; i < 5; i++) {
-    await clock.advance(3000)
+  // Each step's sprite a second in, once any change of mood has played.
+  const sources: string[] = []
+  for (let i = 0; i < 9; i++) {
+    await clock.advance(1000)
+    sources.push(await svgSource($))
+    await clock.advance(2000)
     seen.push(await alt($))
   }
-  expect(seen).toEqual([ALT.idle, ALT.thinking, ALT.working, ALT.error, ALT.done, ALT.idle])
+  await clock.advance(1000)
+  sources.push(await svgSource($))
+  // The five moods, then each tool's prop in the mood that holds it, then back to waiting.
+  expect(seen).toEqual([ALT.idle, ALT.thinking, ALT.working, ALT.error, ALT.done,
+    ALT.thinking, ALT.thinking, ALT.working, ALT.thinking, ALT.idle])
+  expect(sources[5]).toContain('#f4eede')
+  expect(sources[7]).toContain('#60de80')
+  expect(sources[8]).toContain('#60c870')
+  expect(sources[9]).not.toContain('#60c870')
 })
