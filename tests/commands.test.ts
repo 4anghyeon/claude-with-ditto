@@ -1,6 +1,9 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -20,7 +23,7 @@ async function alt($: Engine) {
   return value
 }
 
-test('/ditto mood and /ditto demo', async ($, on) => {
+test('/ditto mood and /ditto demo', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   on('command.register', () => ({ value: { command: 'ditto' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))

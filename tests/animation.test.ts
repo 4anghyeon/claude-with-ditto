@@ -1,5 +1,8 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -7,7 +10,7 @@ const BAND = {
   props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 } as const
 
-test('terminal sprite is repainted by blit: idle only blinks, other moods hop too', async ($, on) => {
+test('terminal sprite is repainted by blit: idle only blinks, other moods hop too', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   const blits: { requestId: string; key: string; cells?: string }[] = []
   on('ui.blit', (_, e) => {
@@ -34,7 +37,7 @@ test('terminal sprite is repainted by blit: idle only blinks, other moods hop to
   await ui.unmount()
 })
 
-test('desktop svg: idle only blinks, other moods hop and twinkle', async ($, on) => {
+test('desktop svg: idle only blinks, other moods hop and twinkle', KOREAN, async ($, on) => {
   on('command.register', () => ({ value: { command: 'ditto' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))

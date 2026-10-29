@@ -1,5 +1,8 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -7,7 +10,7 @@ const BAND = {
   props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 } as const
 
-test('the message changes every 5 seconds while the mood stays', async ($, on) => {
+test('the message changes every 5 seconds while the mood stays', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   on('command.register', () => ({ value: { command: 'ditto' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))

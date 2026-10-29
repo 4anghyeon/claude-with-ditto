@@ -1,5 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -9,7 +12,7 @@ const BAND = {
 
 const LABELS: Record<string, string> = { idle: '대기 중', thinking: '생각 중', working: '함께 작업 중', error: '오류 발견', done: '작업 완료' }
 
-test('band shows only the state and a random message for it', async ($, on) => {
+test('band shows only the state and a random message for it', KOREAN, async ($, on) => {
   on('command.register', () => ({ value: { command: 'ditto' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })

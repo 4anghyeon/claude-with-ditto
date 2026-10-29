@@ -1,6 +1,9 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-test('/ditto <question> sends just the question, as the person\'s own words', async ($, on) => {
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
+test('/ditto <question> sends just the question, as the person\'s own words', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   const submitted: { text: string; context?: readonly string[]; origin: unknown }[] = []
   on('prompt.submit', (_, e) => {
@@ -26,7 +29,7 @@ test('/ditto <question> sends just the question, as the person\'s own words', as
   expect(submitted).toHaveLength(1)
 })
 
-test('the system prompt tells the model how to answer a Ditto question', async ($, on) => {
+test('the system prompt tells the model how to answer a Ditto question', KOREAN, async ($, on) => {
   on('prompt.compose', () => ({ sections: [{ id: 'intro', text: 'engine', scope: 'shared' }] }))
   const { sections } = await $.prompt.compose({ model: 'm', promptModel: 'm', surfaces: [], tools: [], outputStyle: null, traits: [] })
   const persona = sections.find(section => section.id === 'ditto:persona')

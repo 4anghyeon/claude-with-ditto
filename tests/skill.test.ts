@@ -1,6 +1,9 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -17,7 +20,7 @@ async function messageLine($: Engine, surface: 'terminal' | 'desktop' = 'termina
 
 const runSkill = ($: Engine, skill: string) => $.skill.prompt({ skill, text: 'skill body' })
 
-test('a skill run is announced in the message line for 10 seconds, on terminal and desktop', async ($, on) => {
+test('a skill run is announced in the message line for 10 seconds, on terminal and desktop', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   on('skill.prompt', (_, e) => ({ text: e.text }))
   on('command.register', () => ({ value: { command: 'ditto' } }))
@@ -37,7 +40,7 @@ test('a skill run is announced in the message line for 10 seconds, on terminal a
   expect(typeof before).toBe('string')
 })
 
-test('a second skill within 10 seconds replaces the first and restarts the wait', async ($, on) => {
+test('a second skill within 10 seconds replaces the first and restarts the wait', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   on('skill.prompt', (_, e) => ({ text: e.text }))
 
@@ -51,7 +54,7 @@ test('a second skill within 10 seconds replaces the first and restarts the wait'
   expect(await messageLine($)).not.toContain('사용했다!')
 })
 
-test('the announcement takes the accent colour, the usual message Ditto\'s purple', async ($, on) => {
+test('the announcement takes the accent colour, the usual message Ditto\'s purple', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   on('skill.prompt', (_, e) => ({ text: e.text }))
   const colourOfMessage = async () => {
@@ -67,7 +70,7 @@ test('the announcement takes the accent colour, the usual message Ditto\'s purpl
   expect(await colourOfMessage()).toMatchObject({ color: '#C47BE6' })
 })
 
-test('the object particle follows the last syllable or digit', async ($, on) => {
+test('the object particle follows the last syllable or digit', KOREAN, async ($, on) => {
   mock.clock(on)
   on('skill.prompt', (_, e) => ({ text: e.text }))
   const cases: [string, string][] = [
@@ -82,7 +85,7 @@ test('the object particle follows the last syllable or digit', async ($, on) => 
   }
 })
 
-test('the skill itself still runs with its own text', async ($, on) => {
+test('the skill itself still runs with its own text', KOREAN, async ($, on) => {
   mock.clock(on)
   on('skill.prompt', (_, e) => ({ text: `${e.text} (engine)` }))
   const result = await runSkill($, 'humanizer')

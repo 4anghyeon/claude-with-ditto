@@ -1,9 +1,22 @@
 {
   "name": "ditto",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A Ditto-inspired pair-programming companion for Claude Code CLI and Desktop.",
   "author": {
     "name": "4anghyeon"
+  },
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "auto follows Claude Code's language setting, then the system locale.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "ko",
+        "en"
+      ]
+    }
   },
   "types": "./types/index.d.ts"
 }

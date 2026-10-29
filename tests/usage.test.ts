@@ -1,5 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -9,7 +12,7 @@ const BAND = {
 
 const DIVIDER = '─'.repeat(30)
 
-test('the rate limits and the cost share one line between context and model, on every surface', async ($, on) => {
+test('the rate limits and the cost share one line between context and model, on every surface', KOREAN, async ($, on) => {
   on('session.usage', () => ({
     value: {
       startedAt: 0,
@@ -36,7 +39,7 @@ test('the rate limits and the cost share one line between context and model, on 
   }
 })
 
-test('a window the mod does not know keeps its own name', async ($, on) => {
+test('a window the mod does not know keeps its own name', KOREAN, async ($, on) => {
   on('session.usage', () => ({
     value: { startedAt: 0, context: { window: 200000 }, rateLimits: [{ kind: 'monthly', percentUsed: 40 }] },
   }))
@@ -46,7 +49,7 @@ test('a window the mod does not know keeps its own name', async ($, on) => {
   await ui.unmount()
 })
 
-test('the separators between usage items are dim', async ($, on) => {
+test('the separators between usage items are dim', KOREAN, async ($, on) => {
   on('session.usage', () => ({
     value: { startedAt: 0, context: { window: 200000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 23 }], cost: { usd: 1 } },
   }))
@@ -55,7 +58,7 @@ test('the separators between usage items are dim', async ($, on) => {
   await ui.unmount()
 })
 
-test('with no rate limits the usage line shows the cost alone', async ($, on) => {
+test('with no rate limits the usage line shows the cost alone', KOREAN, async ($, on) => {
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000 }, rateLimits: [], cost: { usd: 0.5 } } }))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
@@ -63,7 +66,7 @@ test('with no rate limits the usage line shows the cost alone', async ($, on) =>
   await ui.unmount()
 })
 
-test('with neither rate limits nor a cost the usage line is left out', async ($, on) => {
+test('with neither rate limits nor a cost the usage line is left out', KOREAN, async ($, on) => {
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000 }, rateLimits: [] } }))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)

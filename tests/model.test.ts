@@ -1,5 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
+// The band's text is checked in Korean; English has a test of its own.
+const KOREAN = { options: { language: 'ko' } } as const
+
 const BAND = {
   plugin: 'ditto',
   component: 'AbovePrompt',
@@ -9,7 +12,7 @@ const BAND = {
 
 const DIVIDER = '─'.repeat(30)
 
-test('the model line sits under the context line with its label lined up, on every surface', async ($, on) => {
+test('the model line sits under the context line with its label lined up, on every surface', KOREAN, async ($, on) => {
   on('session.usage', () => ({ value: { startedAt: 0, context: { tokens: 136000, window: 200000, percent: 68 }, rateLimits: [] } }))
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
 
@@ -21,7 +24,7 @@ test('the model line sits under the context line with its label lined up, on eve
   }
 })
 
-test('a model alone still gets the divider', async ($, on) => {
+test('a model alone still gets the divider', KOREAN, async ($, on) => {
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
