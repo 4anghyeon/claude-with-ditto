@@ -54,7 +54,7 @@ claude plugin marketplace remove claude-with-ditto
 
   | State | Looks | When | Motion |
   |---|---|---|---|
-  | Idle | ![Idle](docs/images/idle.gif) | The session starts | Blinks |
+  | Idle | ![Idle](docs/images/idle.gif) | The session starts, 10 seconds after Done | Blinks, now and then looks around or yawns, and falls asleep after a minute |
   | Thinking | ![Thinking](docs/images/thinking.gif) | A prompt is sent, files are read, tests run | Hops, with a question mark |
   | Working | ![Working](docs/images/working.gif) | Files are edited, other commands run | Types on a laptop |
   | Error | ![Error](docs/images/error.gif) | The answer mentions an error or a failure | Breaks into a sweat |
@@ -76,7 +76,7 @@ The default, `auto`, follows Claude Code's own `language` setting: Korean when i
 
 ## Good to know
 
-The sprite frames live in `hooks/sprites.mjs`. The mod loads no outside images and makes no network requests.
+Ditto's pixels live in `hooks/sprites.mjs`, and `hooks/draw.mjs` puts each frame together from them as it draws. The mod loads no outside images and makes no network requests.
 
 In the terminal, Ditto looks cleanest with a line height of 1.0 and a monospace font that has block characters (JetBrains Mono and the like).
 
@@ -114,6 +114,7 @@ claude-with-ditto/
 ├── hooks/
 │   ├── hooks.json
 │   ├── ditto.mjs
+│   ├── draw.mjs           Puts each frame together from the pixels
 │   ├── locales.mjs        Ditto's lines in Korean and English
 │   └── sprites.mjs
 ├── tests/

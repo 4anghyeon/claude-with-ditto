@@ -55,7 +55,7 @@ claude plugin marketplace remove claude-with-ditto
 
   | 상태 | 모습 | 언제 | 움직임 |
   |---|---|---|---|
-  | 대기 중 | ![대기 중](docs/images/idle.gif) | 세션을 시작했을 때 | 눈만 깜박임 |
+  | 대기 중 | ![대기 중](docs/images/idle.gif) | 세션을 시작했을 때, 작업 완료 10초 뒤 | 눈을 깜박이다 가끔 두리번거리거나 하품하고, 1분이 지나면 잠듦 |
   | 생각 중 | ![생각 중](docs/images/thinking.gif) | 프롬프트를 보냈을 때, 파일 읽기, 테스트 실행 | 통통 튀고 물음표가 뜸 |
   | 함께 작업 중 | ![함께 작업 중](docs/images/working.gif) | 파일 수정, 그 밖의 명령 실행 | 노트북 앞에서 타이핑 |
   | 오류 발견 | ![오류 발견](docs/images/error.gif) | 답변에 오류나 실패가 있을 때 | 물방울이 맺힘 |
@@ -77,7 +77,7 @@ claude plugin marketplace remove claude-with-ditto
 
 ## 알아 둘 점
 
-스프라이트 프레임은 `hooks/sprites.mjs`에 들어 있습니다. 외부 이미지나 네트워크 요청은 쓰지 않습니다.
+메타몽의 픽셀은 `hooks/sprites.mjs`에 들어 있고, `hooks/draw.mjs`가 화면에 그릴 때마다 이 픽셀로 프레임을 조립합니다. 외부 이미지나 네트워크 요청은 쓰지 않습니다.
 
 터미널에서는 줄 간격을 1.0으로 맞추고 블록 문자가 들어 있는 고정폭 글꼴(JetBrains Mono 등)을 쓰면 메타몽이 끊기지 않고 깔끔하게 보입니다.
 
@@ -115,6 +115,7 @@ claude-with-ditto/
 ├── hooks/
 │   ├── hooks.json
 │   ├── ditto.mjs
+│   ├── draw.mjs           픽셀로 프레임을 조립
 │   ├── locales.mjs        한국어와 영어 문구
 │   └── sprites.mjs
 ├── tests/

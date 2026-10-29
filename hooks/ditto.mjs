@@ -3,12 +3,13 @@
 // sends a pair-programming question to the current session, answered in Ditto's voice.
 
 import { LOCALES } from "./locales.mjs";
-import { FRAME_MS, FRAME_SEQUENCE, SPRITES } from "./sprites.mjs";
+import { drawSprite, FRAME_MS, terminalFrame } from "./draw.mjs";
+import { IDLE_ACTIONS } from "./sprites.mjs";
 
 const SPRITE_KEY = "ditto-sprite";
 
 // The terminal band the animation repaints; cleared when the band is gone.
-const animation = { requestId: undefined, mood: "idle", tick: 0 };
+const animation = { requestId: undefined, sprite: undefined, action: undefined, tick: 0 };
 
 const STATE = { plugin: "ditto", key: "state" };
 
@@ -52,6 +53,7 @@ export function register(on, options) {
     await saveState($, { mood: "idle" }, { refresh: true });
     await $.command.register({ name: "ditto", description: text.commandDescription });
     startAnimation($);
+    startLooking($);
     return result;
   });
 
@@ -150,10 +152,13 @@ export function register(on, options) {
     // Terminal draws the sprite as half-block cells that a timer repaints, Desktop as an animated SVG;
     // ASCII art where neither exists. Other surfaces list Raster too but draw it as an empty fragment,
     // so pick by surface.
-    const sprite = SPRITES[state.mood] ?? SPRITES.idle;
+    const sprite = drawSprite(state);
     if (e.surface === "terminal") {
+      // An idle action plays from its first frame.
+      if (animation.action !== state.action) animation.tick = 0;
       animation.requestId = e.requestId;
-      animation.mood = state.mood;
+      animation.sprite = sprite;
+      animation.action = state.action;
     }
     const art = e.surface === "terminal"
       ? [elements.Raster({ key: SPRITE_KEY, ...terminalFrame(sprite, animation.tick) })]
@@ -278,11 +283,6 @@ function contextParts(context) {
   };
 }
 
-function terminalFrame(sprite, tick) {
-  const { columns, rows, frames } = sprite.terminal;
-  return { columns, rows, cells: frames[FRAME_SEQUENCE[tick % FRAME_SEQUENCE.length]] };
-}
-
 // Repaints only the sprite's cells each frame, without redrawing the band.
 function startAnimation($) {
   $.clock.every(FRAME_MS, () => void stepAnimation($));
@@ -291,7 +291,7 @@ function startAnimation($) {
 async function stepAnimation($) {
   if (animation.requestId === undefined) return;
   animation.tick += 1;
-  const sprite = SPRITES[animation.mood] ?? SPRITES.idle;
+  const sprite = animation.sprite ?? drawSprite({ mood: "idle" });
   // A blit that fails outright stops the animation as a refused one does, until the band is drawn again.
   const result = await $.ui
     .blit({ requestId: animation.requestId, key: SPRITE_KEY, ...terminalFrame(sprite, animation.tick) })
@@ -342,16 +342,105 @@ async function saveState($, patch, { refresh = false } = {}) {
   const { value: previous } = await $.state.get(STATE);
   const mood = patch.mood ?? previous?.mood ?? "idle";
   const keep = !refresh && previous?.mood === mood && previous?.lastMessage;
+  // A reload drops the module's timers, so Ditto starts waiting over even when it was idle already.
+  const startsIdle = mood === "idle" && (previous?.mood !== "idle" || !idleActions.running);
   await $.state.set(STATE, {
     ...(previous ?? {}),
     ...patch,
     mood,
+    ...(mood !== "idle" || startsIdle ? { action: undefined } : {}),
     lastMessage: keep ? previous.lastMessage : randomMessage(mood, previous?.lastMessage),
   });
   if (!keep) {
     messageTimer?.cancel();
     messageTimer = $.clock.after(MESSAGE_MS, () => void saveState($, {}, { refresh: true }));
   }
+  if (startsIdle) startIdleActions($);
+  else if (mood !== "idle") stopIdleActions();
+}
+
+// While idle Ditto blinks, and every so often does one short action. After a minute it falls asleep
+// and sleeps until the mood changes.
+const IDLE_ACTION_MIN_MS = 3000;
+const IDLE_ACTION_MAX_MS = 5000;
+const SLEEP_AFTER_MS = 60000;
+const SLEEP_ACTION = "sleep";
+const SHORT_ACTIONS = Object.keys(IDLE_ACTIONS).filter((name) => !IDLE_ACTIONS[name].loops);
+const idleActions = { running: false, elapsed: 0, timer: undefined };
+
+function startIdleActions($) {
+  stopIdleActions();
+  idleActions.running = true;
+  idleActions.elapsed = 0;
+  scheduleIdleAction($);
+}
+
+function stopIdleActions() {
+  idleActions.timer?.cancel();
+  idleActions.timer = undefined;
+  idleActions.running = false;
+}
+
+function scheduleIdleAction($) {
+  const wait = randomBetween(IDLE_ACTION_MIN_MS, IDLE_ACTION_MAX_MS);
+  if (idleActions.elapsed + wait >= SLEEP_AFTER_MS) {
+    // The last action may end past the minute, and then Ditto falls asleep right away.
+    const left = Math.max(0, SLEEP_AFTER_MS - idleActions.elapsed);
+    idleActions.timer = $.clock.after(left, () => void saveState($, { action: SLEEP_ACTION }));
+    return;
+  }
+  idleActions.timer = $.clock.after(wait, async () => {
+    const name = SHORT_ACTIONS[Math.floor(Math.random() * SHORT_ACTIONS.length)];
+    const length = IDLE_ACTIONS[name].sequence.length * FRAME_MS;
+    idleActions.elapsed += wait + length;
+    await saveState($, { action: name });
+    idleActions.timer = $.clock.after(length, async () => {
+      await saveState($, { action: undefined });
+      scheduleIdleAction($);
+    });
+  });
+}
+
+// In every mood Ditto now and then glances one way and back, and once in a while turns around. A sleeping
+// Ditto keeps still, and the timers carry on so it looks around again once it wakes.
+const GAZE_MIN_MS = 4000;
+const GAZE_MAX_MS = 8000;
+const TURN_MIN_MS = 15000;
+const TURN_MAX_MS = 30000;
+const GLANCES = ["left", "right", "up"];
+let gazeTimer;
+let turnTimer;
+
+function startLooking($) {
+  gazeTimer?.cancel();
+  turnTimer?.cancel();
+  scheduleGaze($);
+  scheduleTurn($);
+}
+
+function scheduleGaze($) {
+  gazeTimer = $.clock.after(randomBetween(GAZE_MIN_MS, GAZE_MAX_MS), async () => {
+    const { value } = await $.state.get(STATE);
+    const looking = value?.gaze && value.gaze !== "center";
+    if (value?.action !== SLEEP_ACTION) {
+      await saveState($, { gaze: looking ? "center" : GLANCES[Math.floor(Math.random() * GLANCES.length)] });
+    }
+    scheduleGaze($);
+  });
+}
+
+function scheduleTurn($) {
+  turnTimer = $.clock.after(randomBetween(TURN_MIN_MS, TURN_MAX_MS), async () => {
+    const { value } = await $.state.get(STATE);
+    if (value?.action !== SLEEP_ACTION) {
+      await saveState($, { facing: value?.facing === "right" ? "left" : "right" });
+    }
+    scheduleTurn($);
+  });
+}
+
+function randomBetween(min, max) {
+  return Math.round(min + Math.random() * (max - min));
 }
 
 // Korean when Claude Code's own `language` setting names Korean, English when it names any other language.
