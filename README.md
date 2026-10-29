@@ -124,3 +124,9 @@ Besides watching session events and drawing Ditto, the mod does only these three
 - `/ditto lang` saves the mod's own `language` setting.
 
 It leaves the prompts you type alone and never blocks or approves tool runs. It reads and writes no files and makes no network requests.
+
+## License
+
+The code is under the [MIT License](LICENSE).
+
+Pokémon, Ditto's name and likeness, the sprites based on it and the quoted Pokédex text belong to Nintendo, Creatures and GAME FREAK, and are not covered by this license. This is an unofficial fan project, not affiliated with them.
