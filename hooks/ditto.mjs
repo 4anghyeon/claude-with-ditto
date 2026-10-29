@@ -3,13 +3,13 @@
 // sends a pair-programming question to the current session, answered in Ditto's voice.
 
 import { LOCALES } from "./locales.mjs";
-import { drawSprite, FRAME_MS, terminalFrame } from "./draw.mjs";
+import { drawSprite, FRAME_MS, terminalFrame, TRANSITION_MS } from "./draw.mjs";
 import { IDLE_ACTIONS } from "./sprites.mjs";
 
 const SPRITE_KEY = "ditto-sprite";
 
 // The terminal band the animation repaints; cleared when the band is gone.
-const animation = { requestId: undefined, sprite: undefined, action: undefined, tick: 0 };
+const animation = { requestId: undefined, sprite: undefined, action: undefined, transition: undefined, tick: 0 };
 
 const STATE = { plugin: "ditto", key: "state" };
 
@@ -154,11 +154,12 @@ export function register(on, options) {
     // so pick by surface.
     const sprite = drawSprite(state);
     if (e.surface === "terminal") {
-      // An idle action plays from its first frame.
-      if (animation.action !== state.action) animation.tick = 0;
+      // An idle action or a change of mood plays from its first frame.
+      if (animation.action !== state.action || animation.transition !== state.transition) animation.tick = 0;
       animation.requestId = e.requestId;
       animation.sprite = sprite;
       animation.action = state.action;
+      animation.transition = state.transition;
     }
     const art = e.surface === "terminal"
       ? [elements.Raster({ key: SPRITE_KEY, ...terminalFrame(sprite, animation.tick) })]
@@ -344,10 +345,14 @@ async function saveState($, patch, { refresh = false } = {}) {
   const keep = !refresh && previous?.mood === mood && previous?.lastMessage;
   // A reload drops the module's timers, so Ditto starts waiting over even when it was idle already.
   const startsIdle = mood === "idle" && (previous?.mood !== "idle" || !idleActions.running);
+  // A new mood melts in from the old one. One that comes while a change still plays just becomes what
+  // Ditto wells up into, so a burst of tool calls does not keep it melting.
+  const startsTransition = previous?.mood !== undefined && previous.mood !== mood && !previous.transition;
   await $.state.set(STATE, {
     ...(previous ?? {}),
     ...patch,
     mood,
+    ...(startsTransition ? { transition: previous.mood } : {}),
     ...(mood !== "idle" || startsIdle ? { action: undefined } : {}),
     lastMessage: keep ? previous.lastMessage : randomMessage(mood, previous?.lastMessage),
   });
@@ -355,9 +360,15 @@ async function saveState($, patch, { refresh = false } = {}) {
     messageTimer?.cancel();
     messageTimer = $.clock.after(MESSAGE_MS, () => void saveState($, {}, { refresh: true }));
   }
+  if (startsTransition) {
+    transitionTimer?.cancel();
+    transitionTimer = $.clock.after(TRANSITION_MS, () => void saveState($, { transition: undefined }));
+  }
   if (startsIdle) startIdleActions($);
   else if (mood !== "idle") stopIdleActions();
 }
+
+let transitionTimer;
 
 // While idle Ditto blinks, and every so often does one short action. After a minute it falls asleep
 // and sleeps until the mood changes.

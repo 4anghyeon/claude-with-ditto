@@ -11,11 +11,14 @@ const BAND = {
   props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 } as const
 
-// The plain idle sprite blinks, an action swaps whole frames, and only sleep has the floating Z.
+// Only sleep has the floating Z, only the moods blink (and all but idle hop), and an action just swaps
+// whole frames.
 function kindOf(source: string) {
+  if (source.includes('repeatCount="1"')) return 'transition'
   if (source.includes('#c8dcff')) return 'sleep'
+  if (source.includes('<animateTransform')) return 'other'
+  if (source.includes('<animate attributeName="opacity" values="0;1;0"')) return 'idle'
   if (source.includes('attributeName="visibility"')) return 'action'
-  if (source.includes('<animate attributeName="opacity" values="0;1;0"') && !source.includes('<animateTransform')) return 'idle'
   return 'other'
 }
 
@@ -68,13 +71,16 @@ test('a new turn wakes Ditto, and the wait starts over when it is idle again', K
   await clock.advance(64000)
   expect(await drawn($)).toBe('sleep')
   await $.turn.start({ text: 'go', turnId: 't1' })
+  expect(await drawn($)).toBe('transition')
+  await clock.advance(1000)
   expect(await drawn($)).toBe('other')
   await clock.advance(120000)
   expect(await drawn($)).toBe('other')
 
   await run('mood idle')
+  await clock.advance(1000)
   expect(await drawn($)).toBe('idle')
-  await clock.advance(2500)
+  await clock.advance(1500)
   expect(await drawn($)).toBe('idle')
 })
 

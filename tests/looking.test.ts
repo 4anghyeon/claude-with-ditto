@@ -25,10 +25,12 @@ test('in every mood Ditto glances around and turns now and then', KOREAN, async 
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   await $.turn.start({ text: 'go', turnId: 't1' })
+  // Past the change from idle to thinking.
+  await clock.advance(1000)
 
   const first = await source($)
   const still = new Set<string>()
-  for (let ms = 0; ms < 3500; ms += 500) {
+  for (let ms = 0; ms < 2500; ms += 500) {
     still.add(await source($))
     await clock.advance(500)
   }

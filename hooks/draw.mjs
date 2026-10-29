@@ -1,6 +1,6 @@
 // Puts Ditto together from its pixels in sprites.mjs: the mood's body turned the way Ditto faces, its eyes
-// moved where it looks, then each frame's hop, blink and glyphs. The terminal gets half-block cells for one
-// frame at a time; Desktop gets an SVG that animates by itself.
+// moved where it looks, its breath, then each frame's hop, blink and glyphs. The terminal gets half-block
+// cells for one frame at a time; Desktop gets an SVG that animates by itself.
 
 import { COLOURS, IDLE_ACTIONS, MOODS, PALETTE, TIMING, ZED_GLYPH } from "./sprites.mjs";
 
@@ -13,13 +13,22 @@ const key = (r, c) => `${r},${c}`;
 
 const drawn = new Map();
 
-// Ditto as the state shows it: an idle action when one plays, else the mood. Each one is drawn once.
-export function drawSprite({ mood, action, facing = "left", gaze = "center" }) {
-  const playing = mood === "idle" && IDLE_ACTIONS[action] ? action : undefined;
-  const id = playing ? `action ${playing} ${facing}` : `mood ${MOODS[mood] ? mood : "idle"} ${facing} ${gaze}`;
-  if (!drawn.has(id)) {
-    drawn.set(id, playing ? drawAction(IDLE_ACTIONS[playing], facing) : drawMood(MOODS[mood] ?? MOODS.idle, facing, gaze));
+// Ditto as the state shows it: the change from one mood to the next while it plays, else an idle action
+// when one plays, else the mood. Each one is drawn once.
+export function drawSprite({ mood, action, transition, facing = "left", gaze = "center" }) {
+  const to = MOODS[mood] ? mood : "idle";
+  if (MOODS[transition]) {
+    return remember(`transition ${transition} ${to} ${facing} ${gaze}`, () =>
+      drawTransition(MOODS[transition], MOODS[to], facing, gaze));
   }
+  if (mood === "idle" && IDLE_ACTIONS[action]) {
+    return remember(`action ${action} ${facing}`, () => drawAction(IDLE_ACTIONS[action], facing));
+  }
+  return remember(`mood ${to} ${facing} ${gaze}`, () => drawMood(MOODS[to], facing, gaze));
+}
+
+function remember(id, draw) {
+  if (!drawn.has(id)) drawn.set(id, draw());
   return drawn.get(id);
 }
 
@@ -80,7 +89,30 @@ function poseMood(layer, facing, gaze) {
     for (const [r, c] of looked) body.set(key(r, c), COLOURS.black);
     eyes = looked;
   }
-  return { body, props, extras, eyes: new Set(eyes.map(([r, c]) => key(r, c))) };
+  return { body, props, extras, eyes: new Set(eyes.map(([r, c]) => key(r, c))), stretchRow: layer.stretchRow };
+}
+
+// One breath every ten seconds: the upper body rises a pixel, holds for half a second and settles.
+const BREATH_TICKS = 10000 / FRAME_MS;
+const RISE_FROM = 2;
+const RISE_UNTIL = 6;
+const BREATH = Array.from({ length: BREATH_TICKS }, (_, i) => (i >= RISE_FROM && i < RISE_UNTIL ? 1 : 0));
+
+// The body and eyes partway through a breath. Rising repeats the last row above the shadow along the
+// bottom, so everything above it, eyes and arms too, lifts while the shadow and the bottom stay as they are.
+function breathe(parts, rise) {
+  if (!rise) return parts;
+  const middle = parts.stretchRow;
+  const lift = (cell) => {
+    const [r, c] = cell.split(",").map(Number);
+    return key(r <= middle ? r - 1 : r, c);
+  };
+  const body = new Map();
+  for (const [cell, colour] of parts.body) {
+    if (Number(cell.split(",")[0]) === middle) body.set(cell, colour);
+    body.set(lift(cell), colour);
+  }
+  return { ...parts, body, eyes: new Set([...parts.eyes].map(lift)) };
 }
 
 // The frame for one tick: up off the ground on the hop, eyes shut on the blink, glyphs on their beat.
@@ -118,6 +150,7 @@ function composeMood(parts, width, height, { lifted, blinking, extrasOn }) {
 
 function drawMood(mood, facing, gaze) {
   const terminal = poseMood(mood.terminal, facing, gaze);
+  const breaths = [breathe(terminal, 0), breathe(terminal, 1)];
   const { width, height } = mood.terminal;
   const frames = new Map();
   return {
@@ -125,11 +158,88 @@ function drawMood(mood, facing, gaze) {
     rows: Math.ceil(height / 2),
     cellsAt(tick) {
       const frame = frameKey(tick, mood.bounces);
-      const id = `${frame.lifted} ${frame.blinking} ${frame.extrasOn}`;
-      if (!frames.has(id)) frames.set(id, encodeCells(composeMood(terminal, width, height, frame)));
+      const rise = BREATH[tick % BREATH.length];
+      const id = `${frame.lifted} ${frame.blinking} ${frame.extrasOn} ${rise}`;
+      if (!frames.has(id)) frames.set(id, encodeCells(composeMood(breaths[rise], width, height, frame)));
       return frames.get(id);
     },
     svg: moodSvg(mood, poseMood(mood.desktop, facing, gaze)),
+  };
+}
+
+// A change of mood: the old Ditto shuts its eyes and melts down row by row, spreading out to the sides as it
+// flattens, then the new one wells back up, springs a pixel past its height a little slimmer and settles.
+// Props and glyphs stay away until it has settled.
+const TRANSITION = [
+  { from: true, squash: 2, spread: 1 },
+  { from: true, squash: 4, spread: 2, shut: true },
+  { from: true, squash: 6, spread: 3, shut: true },
+  { squash: 6, spread: 3, shut: true },
+  { squash: 3, spread: 2, shut: true },
+  { squash: 1, spread: 1 },
+  { rise: 1, spread: -1 },
+];
+export const TRANSITION_MS = TRANSITION.length * FRAME_MS;
+
+// The body and eyes with rows taken out just above the shadow, the rows over them sinking into the gap.
+function squash(parts, rows) {
+  let { body, eyes } = parts;
+  for (let i = 0; i < rows; i++) {
+    const sink = (cell) => {
+      const [r, c] = cell.split(",").map(Number);
+      return key(r < parts.stretchRow ? r + 1 : r, c);
+    };
+    const kept = [...body].filter(([cell]) => Number(cell.split(",")[0]) !== parts.stretchRow);
+    body = new Map(kept.map(([cell, colour]) => [sink(cell), colour]));
+    eyes = new Set([...eyes].map(sink));
+  }
+  return { ...parts, body, eyes };
+}
+
+// The body and eyes made wider (or slimmer, for a negative count) by that many columns: its middle column
+// is drawn again, or taken out, with the sides moving apart or together around it. A wider body grows
+// toward whichever side has more room in the canvas, so a Ditto facing either way stays inside it.
+function spread(parts, columns, width) {
+  if (!columns) return parts;
+  const all = [...parts.body.keys()].map((cell) => Number(cell.split(",")[1]));
+  const lowest = Math.min(...all);
+  const highest = Math.max(...all);
+  const middle = Math.round((lowest + highest) / 2);
+  const roomier = lowest > width - 1 - highest ? "left" : "right";
+  const half = Math.trunc(columns / 2);
+  const left = roomier === "left" ? columns - half : half;
+  const right = columns - left;
+  const move = (r, c) => key(r, c < middle ? c - left : c > middle ? c + right : c);
+  const body = new Map();
+  for (const [cell, colour] of parts.body) {
+    const [r, c] = cell.split(",").map(Number);
+    if (c === middle && columns < 0) continue;
+    if (c === middle) for (let dc = -left; dc <= right; dc++) body.set(key(r, c + dc), colour);
+    else body.set(move(r, c), colour);
+  }
+  const eyes = new Set([...parts.eyes].map((cell) => move(...cell.split(",").map(Number))));
+  return { ...parts, body, eyes };
+}
+
+function transitionGrids(from, to, layer, facing, gaze) {
+  const posed = { from: poseMood(from[layer], facing, gaze), to: poseMood(to[layer], facing, gaze) };
+  const { width, height } = to[layer];
+  return TRANSITION.map((step) => {
+    const parts = posed[step.from ? "from" : "to"];
+    const shaped = spread(step.rise ? breathe(parts, 1) : squash(parts, step.squash), step.spread, width);
+    return composeMood({ ...shaped, props: new Map() }, width, height, { lifted: false, blinking: !!step.shut, extrasOn: false });
+  });
+}
+
+function drawTransition(from, to, facing, gaze) {
+  const { width, height } = to.terminal;
+  const cells = transitionGrids(from, to, "terminal", facing, gaze).map(encodeCells);
+  const sequence = TRANSITION.map((_, i) => i);
+  return {
+    columns: width,
+    rows: Math.ceil(height / 2),
+    cellsAt: (tick) => cells[Math.min(tick, cells.length - 1)],
+    svg: framesSvg(to.desktop.width, to.desktop.height, transitionGrids(from, to, "desktop", facing, gaze), sequence, to.label, { once: true }),
   };
 }
 
@@ -242,24 +352,35 @@ function svgElement(source, width, height) {
   return { source, width: width * TIMING.scale, height: height * TIMING.scale, isInteractive: true };
 }
 
-// A mood's SVG animates by itself: the body hops, the lids close on the blink and the glyphs twinkle.
+// A mood's SVG animates by itself: the body breathes between its resting and risen frames and hops, the
+// lids close on the blink and the glyphs twinkle. Every animation runs on the same clock, so each breath
+// frame carries its own lids and blinks with the rest.
 function moodSvg(mood, parts) {
   const { width, height } = mood.desktop;
   const { bounce, cycle, blinkFrame, extrasOn, extrasPeriod, frameMs, lift } = TIMING;
   const up = bounce.indexOf(1) / bounce.length;
   const down = (bounce.lastIndexOf(1) + 1) / bounce.length;
-  const lids = new Map([...parts.eyes].map((cell) => [cell, COLOURS.body]));
+  const times = `0;${(RISE_FROM / BREATH_TICKS).toFixed(4)};${(RISE_UNTIL / BREATH_TICKS).toFixed(4)}`;
+  const blink =
+    `<animate attributeName="opacity" values="0;1;0" keyTimes="0;${(blinkFrame / cycle).toFixed(4)};${((blinkFrame + 1) / cycle).toFixed(4)}" ` +
+    `dur="${seconds(cycle * frameMs)}s" calcMode="discrete" repeatCount="indefinite"/>`;
+  const breaths = [0, 1].map((rise) => {
+    const breath = breathe(parts, rise);
+    const lids = new Map([...breath.eyes].map((cell) => [cell, COLOURS.body]));
+    const values = rise ? "hidden;visible;hidden" : "visible;hidden;visible";
+    return (
+      `<g visibility="hidden">${rects(breath.body)}<g opacity="0">${rects(lids)}${blink}</g>` +
+      `<animate attributeName="visibility" values="${values}" keyTimes="${times}" dur="${seconds(BREATH.length * frameMs)}s" ` +
+      `calcMode="discrete" repeatCount="indefinite"/></g>`
+    );
+  });
   const hop = mood.bounces
     ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -${lift};0 0" ` +
       `keyTimes="0;${up.toFixed(4)};${down.toFixed(4)}" dur="${seconds(bounce.length * frameMs)}s" calcMode="discrete" repeatCount="indefinite"/>`
     : "";
   const source =
     svgOpen(width, height, mood.label) +
-    `<g>${rects(parts.body)}` +
-    `<g opacity="0">${rects(lids)}` +
-    `<animate attributeName="opacity" values="0;1;0" keyTimes="0;${(blinkFrame / cycle).toFixed(4)};${((blinkFrame + 1) / cycle).toFixed(4)}" ` +
-    `dur="${seconds(cycle * frameMs)}s" calcMode="discrete" repeatCount="indefinite"/></g>` +
-    `${hop}</g>` +
+    `<g>${breaths.join("")}${hop}</g>` +
     rects(parts.props) +
     `<g>${rects(parts.extras)}` +
     `<animate attributeName="opacity" values="1;0" keyTimes="0;${(extrasOn / extrasPeriod).toFixed(4)}" ` +
@@ -268,8 +389,9 @@ function moodSvg(mood, parts) {
   return svgElement(source, width, height);
 }
 
-// An SVG that shows each distinct frame in turn, in the order the sequence gives.
-function framesSvg(width, height, grids, sequence, label) {
+// An SVG that shows each distinct frame in turn, in the order the sequence gives: over and over, or once
+// and then holding its last frame.
+function framesSvg(width, height, grids, sequence, label, { once = false } = {}) {
   const duration = seconds(sequence.length * TIMING.frameMs);
   const times = sequence.map((_, i) => (i / sequence.length).toFixed(4)).join(";");
   const groups = grids.map((grid, k) => {
@@ -279,7 +401,7 @@ function framesSvg(width, height, grids, sequence, label) {
     return (
       `<g visibility="hidden">${rects(cells)}` +
       `<animate attributeName="visibility" values="${values}" keyTimes="${times}" dur="${duration}s" ` +
-      `calcMode="discrete" repeatCount="indefinite"/></g>`
+      `calcMode="discrete" ${once ? 'repeatCount="1" fill="freeze"' : 'repeatCount="indefinite"'}/></g>`
     );
   });
   return svgElement(svgOpen(width, height, label) + groups.join("") + "</svg>", width, height);

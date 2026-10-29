@@ -10,7 +10,7 @@ const BAND = {
   props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 } as const
 
-test('terminal sprite is repainted by blit: idle only blinks, other moods hop too', KOREAN, async ($, on) => {
+test('terminal sprite is repainted by blit: idle breathes and blinks, other moods hop on top of that', KOREAN, async ($, on) => {
   const clock = mock.clock(on)
   const blits: { requestId: string; key: string; cells?: string }[] = []
   on('ui.blit', (_, e) => {
@@ -26,18 +26,20 @@ test('terminal sprite is repainted by blit: idle only blinks, other moods hop to
   await clock.advance(125 * 24)
   expect(blits.length).toBeGreaterThan(20)
   expect(blits[0]).toMatchObject({ requestId: 'above-prompt', key: 'ditto-sprite' })
-  expect(new Set(blits.map(b => b.cells)).size).toBe(2)
+  const idle = new Set(blits.map(b => b.cells)).size
+  expect(idle).toBeGreaterThan(2)
   await ui.unmount()
 
   blits.length = 0
   await $.turn.start({ text: 'go', turnId: 't1' })
   ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await clock.advance(125 * 24)
-  expect(new Set(blits.map(b => b.cells)).size).toBeGreaterThan(2)
+  expect(new Set(blits.map(b => b.cells)).size).toBeGreaterThan(idle)
   await ui.unmount()
 })
 
 test('desktop svg: idle only blinks, other moods hop and twinkle', KOREAN, async ($, on) => {
+  const clock = mock.clock(on)
   on('command.register', () => ({ value: { command: 'ditto' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
@@ -51,9 +53,30 @@ test('desktop svg: idle only blinks, other moods hop and twinkle', KOREAN, async
     await ui.unmount()
   }
   await $.turn.start({ text: 'go', turnId: 't1' })
+  // Past the change from idle to thinking.
+  await clock.advance(1000)
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   const svg = (await ui.find({ type: 'Svg' }))?.props as { source: string; alt: string }
   expect(svg.alt).toBe('고민하는 메타몽')
   expect(svg.source).toContain('<animateTransform')
   await ui.unmount()
+})
+
+test('desktop svg: every mood breathes between a resting and a risen frame, each with lids that blink', KOREAN, async ($, on) => {
+  const clock = mock.clock(on)
+  on('command.register', () => ({ value: { command: 'ditto' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  const run = (args: string) => $.command.run({ command: 'ditto', args, origin: { kind: 'person' }, presentation: { isFullscreen: false, columns: 80 } } as never)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  for (const mood of ['idle', 'thinking', 'working', 'error', 'done']) {
+    await run(`mood ${mood}`)
+    await clock.advance(1000)
+    const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    const source = ((await ui.find({ type: 'Svg' }))?.props as { source: string }).source
+    const breaths = source.split('<g visibility="hidden">').length - 1
+    expect(breaths).toBe(2)
+    expect(source.split('values="0;1;0"').length - 1).toBe(breaths)
+    expect(source).toContain('dur="10.0s"')
+    await ui.unmount()
+  }
 })

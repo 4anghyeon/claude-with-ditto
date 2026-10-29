@@ -14,6 +14,7 @@ export const MOODS = {
     "terminal": {
       "width": 19,
       "height": 13,
+      "stretchRow": 9,
       "body": [
         "...................",
         "......01...........",
@@ -59,6 +60,7 @@ export const MOODS = {
     "desktop": {
       "width": 18,
       "height": 14,
+      "stretchRow": 9,
       "body": [
         "..................",
         "......01..........",
@@ -110,6 +112,7 @@ export const MOODS = {
     "terminal": {
       "width": 19,
       "height": 13,
+      "stretchRow": 9,
       "body": [
         "...................",
         "......01...........",
@@ -168,6 +171,7 @@ export const MOODS = {
     "desktop": {
       "width": 18,
       "height": 14,
+      "stretchRow": 9,
       "body": [
         "..................",
         "......01..........",
@@ -232,6 +236,7 @@ export const MOODS = {
     "terminal": {
       "width": 19,
       "height": 13,
+      "stretchRow": 9,
       "body": [
         "...................",
         "......01...........",
@@ -296,6 +301,7 @@ export const MOODS = {
     "desktop": {
       "width": 18,
       "height": 14,
+      "stretchRow": 9,
       "body": [
         "..................",
         "......01..........",
@@ -366,6 +372,7 @@ export const MOODS = {
     "terminal": {
       "width": 19,
       "height": 13,
+      "stretchRow": 9,
       "body": [
         "...................",
         "......01...........",
@@ -430,6 +437,7 @@ export const MOODS = {
     "desktop": {
       "width": 18,
       "height": 14,
+      "stretchRow": 9,
       "body": [
         "..................",
         "......01..........",
@@ -500,6 +508,7 @@ export const MOODS = {
     "terminal": {
       "width": 19,
       "height": 13,
+      "stretchRow": 9,
       "body": [
         "...................",
         "......01...........",
@@ -574,6 +583,7 @@ export const MOODS = {
     "desktop": {
       "width": 18,
       "height": 14,
+      "stretchRow": 9,
       "body": [
         "..................",
         "......01..........",

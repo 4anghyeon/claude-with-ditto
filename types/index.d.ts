@@ -7,6 +7,8 @@ export type DittoState = {
   facing?: "left" | "right";
   /** Where Ditto's eyes look. */
   gaze?: "center" | "left" | "right" | "up";
+  /** The mood Ditto is changing from, while the change plays. */
+  transition?: DittoMood;
   /** The idle action Ditto is playing, by its name in IDLE_ACTIONS. */
   action?: string;
   /** What Ditto says in the message's place for a few seconds after a skill runs. */
