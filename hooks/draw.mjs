@@ -368,7 +368,8 @@ function svgElement(source, width, height) {
 
 // A mood's SVG animates by itself: the body breathes between its resting and risen frames and hops, the
 // lids close on the blink and the glyphs twinkle. Every animation runs on the same clock, so each breath
-// frame carries its own lids and blinks with the rest.
+// frame carries its own lids and blinks with the rest. The resting frame is visible before the animations
+// start, so Ditto does not vanish for a moment each time Desktop swaps in a new SVG.
 function moodSvg(mood, parts) {
   const { width, height } = mood.desktop;
   const { bounce, cycle, blinkFrame, extrasOn, extrasPeriod, frameMs, lift } = TIMING;
@@ -383,7 +384,7 @@ function moodSvg(mood, parts) {
     const lids = new Map([...breath.eyes].map((cell) => [cell, COLOURS.body]));
     const values = rise ? "hidden;visible;hidden" : "visible;hidden;visible";
     return (
-      `<g visibility="hidden">${rects(breath.body)}<g opacity="0">${rects(lids)}${blink}</g>` +
+      `<g visibility="${rise ? "hidden" : "visible"}">${rects(breath.body)}<g opacity="0">${rects(lids)}${blink}</g>` +
       `<animate attributeName="visibility" values="${values}" keyTimes="${times}" dur="${seconds(BREATH.length * frameMs)}s" ` +
       `calcMode="discrete" repeatCount="indefinite"/></g>`
     );
@@ -404,7 +405,7 @@ function moodSvg(mood, parts) {
 }
 
 // An SVG that shows each distinct frame in turn, in the order the sequence gives: over and over, or once
-// and then holding its last frame.
+// and then holding its last frame. The first frame is visible before the animation starts, as in a mood's.
 function framesSvg(width, height, grids, sequence, label, { once = false } = {}) {
   const duration = seconds(sequence.length * TIMING.frameMs);
   const times = sequence.map((_, i) => (i / sequence.length).toFixed(4)).join(";");
@@ -413,7 +414,7 @@ function framesSvg(width, height, grids, sequence, label, { once = false } = {})
     grid.forEach((line, r) => line.forEach((colour, c) => colour >= 0 && cells.set(key(r, c), colour)));
     const values = sequence.map((index) => (index === k ? "visible" : "hidden")).join(";");
     return (
-      `<g visibility="hidden">${rects(cells)}` +
+      `<g visibility="${k === sequence[0] ? "visible" : "hidden"}">${rects(cells)}` +
       `<animate attributeName="visibility" values="${values}" keyTimes="${times}" dur="${duration}s" ` +
       `calcMode="discrete" ${once ? 'repeatCount="1" fill="freeze"' : 'repeatCount="indefinite"'}/></g>`
     );

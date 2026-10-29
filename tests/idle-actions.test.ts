@@ -46,6 +46,15 @@ test('while idle Ditto does a short action now and then, then falls asleep after
   }
   expect(seen.slice(0, 6).every(name => name === 'idle')).toBe(true)
   expect(seen).toContain('action')
+  // An action shows its first frame before its animation starts.
+  for (let ms = 0; ms < 5000; ms += 125) {
+    const source = await sourceOf($)
+    if (kindOf(source) === 'action') {
+      expect(source.split('<g visibility="visible">').length - 1).toBe(1)
+      break
+    }
+    await clock.advance(125)
+  }
   expect(seen.every(name => name === 'idle' || name === 'action')).toBe(true)
 
   // An action that is still playing at the minute finishes first, then Ditto turns to stone for a second.

@@ -73,8 +73,10 @@ test('desktop svg: every mood breathes between a resting and a risen frame, each
     await clock.advance(1000)
     const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
     const source = ((await ui.find({ type: 'Svg' }))?.props as { source: string }).source
-    const breaths = source.split('<g visibility="hidden">').length - 1
+    const breaths = source.split('<g visibility="').length - 1
     expect(breaths).toBe(2)
+    // The resting frame shows before the animations start, so a new SVG never draws an empty Ditto.
+    expect(source.split('<g visibility="visible">').length - 1).toBe(1)
     expect(source.split('values="0;1;0"').length - 1).toBe(breaths)
     expect(source).toContain('dur="10.0s"')
     await ui.unmount()

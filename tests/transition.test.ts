@@ -32,7 +32,8 @@ test('a new mood melts in from the old one for 0.875 seconds, then Ditto settles
   const melting = await source($)
   expect(isTransition(melting)).toBe(true)
   // Seven frames, shown once each, with neither the hop nor the glyphs of the new mood.
-  expect(melting.split('<g visibility="hidden">').length - 1).toBe(7)
+  expect(melting.split('<g visibility="').length - 1).toBe(7)
+  expect(melting.split('<g visibility="visible">').length - 1).toBe(1)
   expect(melting).not.toContain('<animateTransform')
 
   await clock.advance(874)
