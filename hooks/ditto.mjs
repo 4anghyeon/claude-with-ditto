@@ -84,8 +84,9 @@ export function register(on, options) {
     const result = await next(e);
     if (!e.agentId) {
       const answer = String(e.answer ?? "");
-      const mood = /(error|failed|exception|실패|오류)/i.test(answer) ? "error" : "done";
+      const mood = /\b(error|failed|exception)\b|실패|오류/i.test(answer) ? "error" : "done";
       await saveState($, { mood });
+      if (mood === "done") scheduleIdle($);
     }
     return result;
   });
@@ -316,6 +317,19 @@ async function announceSkill($, skill) {
   announcementTimer?.cancel();
   await saveState($, { announcement: text.skillUsed(name) });
   announcementTimer = $.clock.after(ANNOUNCEMENT_MS, () => void saveState($, { announcement: undefined }));
+}
+
+// After a finished turn Ditto celebrates for a while, then waits again. A turn that starts in the
+// meantime has changed the mood, so the timer leaves it alone.
+const DONE_MS = 10000;
+let idleTimer;
+
+function scheduleIdle($) {
+  idleTimer?.cancel();
+  idleTimer = $.clock.after(DONE_MS, async () => {
+    const { value } = await $.state.get(STATE);
+    if (value?.mood === "done") await saveState($, { mood: "idle" });
+  });
 }
 
 // How long one message stays before Ditto says another one for the same mood.
